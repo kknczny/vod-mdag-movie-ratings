@@ -1,9 +1,28 @@
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
+import ssl
 
+def scrap_page(
+    url = "https://vod.mdag.pl/pl/filmy",
+    context = ssl.SSLContext()
+):
 
+    with urlopen(url, context=context) as response:
+        soup = BeautifulSoup(response, "html.parser")
+        titles = {}
+        titles_eng = [value.string for value in soup.find_all("div", "moviebox-desc")]
 
-with urlopen('https://en.wikipedia.org/wiki/Main_Page') as response:
-    soup = BeautifulSoup(response, 'html.parser')
-    for anchor in soup.find_all('a'):
-        print(anchor.get('href', '/'))
+        for key in soup.find_all("div", "moviebox-title"):
+            for value in titles_eng:
+                titles[key.string] = value
+                titles_eng.remove(value)
+                break
+    return titles
+
+titles = scrap_page()
+
+# print(list(titles.values())[0])
+
+# result = RottenTomatoesClient.search(term="Indiana Jones", limit=5)
+
+# print(result)
