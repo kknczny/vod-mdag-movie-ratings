@@ -1,0 +1,3 @@
+[submodule "rotten_tomatoes_client"]
+	path = rotten_tomatoes_client
+	url = https://github.com/jaebradley/rotten_tomatoes_client/
