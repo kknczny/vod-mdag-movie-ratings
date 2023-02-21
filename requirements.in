@@ -1,0 +1,3 @@
+rotten_tomatoes_client==0.0.3
+bs4
+urllib
