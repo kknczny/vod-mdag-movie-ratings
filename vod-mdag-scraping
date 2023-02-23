@@ -11,18 +11,19 @@ pd.options.mode.chained_assignment = None       #  Suppres Pandas SettingWithCop
 class AddRatingsFromPage():
 
     def __init__(
-        self,
-        url: str = "https://vod.mdag.pl/pl/filmy",
-        test_subset: int = None
+            self,
+            url: str = "https://vod.mdag.pl/pl/filmy",
+            test_subset: int = 13
     ):
         self.url = url
-        self.test_subset: test_subset
+        self.test_subset = test_subset
 
     def scrap_page(self):
         titles = pd.DataFrame()
 
         context = ssl.SSLContext(ssl.PROTOCOL_TLS)
-        with urlopen(url, context=context) as response:
+
+        with urlopen(self.url, context=context) as response:
             soup = BeautifulSoup(response, "html.parser")
         
         titles['title'] = [value.string for value in soup.find_all("div", "moviebox-desc")]
@@ -30,9 +31,9 @@ class AddRatingsFromPage():
         
         ##add also a step to go into movie subpage based on link and get additional information such as year
         
-        if self.test_subset:
+        if self.test_subset is not None:
             titles = titles.head(self.test_subset)
-
+    
         self.titles = titles
 
         if len(titles) == 1:
@@ -49,7 +50,7 @@ class AddRatingsFromPage():
 
     # print(f"sample title from website: {sample_title}")
 
-
+    
     def get_ratings(self):
         print("Starting obtaining ratings")
         start = time.time()
@@ -81,12 +82,18 @@ class AddRatingsFromPage():
 
         # print(imdb_movies.keys())
         # movie = ia.get_movie('9634036')
-
+    
     def get_ratings_from_url(self):
-        self.get_ratings(self.scrap_page())
+        self.scrap_page()
+        self.get_ratings()
         
 
 
 
 if __name__ == "__main__":
-    
+    vod_mdag = AddRatingsFromPage()
+
+    vod_mdag.get_ratings_from_url()
+
+    # scraped = vod_mdag.scrap_page()
+    # vod_mdag.get_ratings()
