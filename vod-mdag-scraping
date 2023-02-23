@@ -15,7 +15,7 @@ class AddRatingsFromPage():
     def __init__(
             self,
             url: str = "https://vod.mdag.pl/pl/filmy",
-            test_subset: int = 13
+            test_subset: int = None
     ):
         self.url = url
         self.test_subset = test_subset
@@ -96,5 +96,5 @@ class AddRatingsFromPage():
         
 
 if __name__ == "__main__":
-    vod_mdag = AddRatingsFromPage(test_subset=3)
+    vod_mdag = AddRatingsFromPage(test_subset=None)
     vod_mdag.get_ratings_from_url()
