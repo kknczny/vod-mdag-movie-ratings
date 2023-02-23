@@ -3,11 +3,12 @@ from urllib.request import urlopen
 import ssl
 import time
 import sys
-# from rotten_tomatoes_client.client import RottenTomatoesClient
+# import asyncio
 import pandas as pd
 from imdb import Cinemagoer
 
 pd.options.mode.chained_assignment = None       #  Suppres Pandas SettingWithCopyWaring
+pd.options.display.max_columns = 10
 
 class AddRatingsFromPage():
 
@@ -29,7 +30,7 @@ class AddRatingsFromPage():
         
         titles['title'] = [value.string for value in soup.find_all("div", "moviebox-desc")]
         titles['title_pl'] = [value.string for value in soup.find_all("div", "moviebox-title")]
-        
+
         ##add also a step to go into movie subpage based on link and get additional information such as year
         
         if self.test_subset is not None:
@@ -46,23 +47,17 @@ class AddRatingsFromPage():
 
     
         return titles
-
-    # sample_title = list(titles.values())[0]
-
-    # print(f"sample title from website: {sample_title}")
-
     
     def get_ratings(self):
-        print("Starting obtaining ratings")
-        start = time.time()
         
         titles = self.titles
-
+        stdout_counter = 1
         ia = Cinemagoer()
 
-        stdout_counter = 1
+        print("Starting obtaining ratings")
+        start = time.time()
 
-        for title in titles['title']:
+        for index, title in titles['title'].items():
             
             sys.stdout.write(f"Progress: Downloading rating for item no {stdout_counter} out of {len(titles)}.\r")
 
@@ -70,16 +65,16 @@ class AddRatingsFromPage():
             movie_id = str(imdb_movies[0].movieID)
             movie = ia.get_movie(movie_id)
 
-            titles['imdb_title'] = str(imdb_movies[0])
-            titles['names_match'] = (titles['title']==titles['imdb_title']).astype(int) ##add also comparison for year once obtained for vod movies
+            titles.at[index, 'imdb_title'] = str(imdb_movies[0])
+            # titles.at[index, 'names_match'] = (titles['title']==titles['imdb_title']).astype(int) ##add also comparison for year once obtained for vod movies
             
-            titles['imdb_id'] = movie_id
+            titles.at[index, 'imdb_id'] = movie_id
             
-            titles['year'] = movie['year']
+            titles.at[index, 'year'] = str(movie['year'])
             # titles['countries']
 
-            titles['rating'] = movie['rating']
-            titles['votes'] = movie['votes']
+            titles.at[index, 'rating'] = movie['rating']
+            titles.at[index, 'votes'] = str(movie['votes'])
 
             sys.stdout.flush()
             stdout_counter += 1
@@ -87,10 +82,13 @@ class AddRatingsFromPage():
         end = time.time()
 
         print(f"Obtaining ratings finished. It took: {end-start} seconds.")
+        
+        titles.index += 1
+        titles.sort_values('rating', ascending=False)
+        
         print(titles)
 
-        # print(imdb_movies.keys())
-        # movie = ia.get_movie('9634036')
+        titles.to_csv("Ratings.csv")
     
     def get_ratings_from_url(self):
         self.scrap_page()
@@ -100,9 +98,5 @@ class AddRatingsFromPage():
 
 
 if __name__ == "__main__":
-    vod_mdag = AddRatingsFromPage()
-
+    vod_mdag = AddRatingsFromPage(test_subset=3)
     vod_mdag.get_ratings_from_url()
-
-    # scraped = vod_mdag.scrap_page()
-    # vod_mdag.get_ratings()
