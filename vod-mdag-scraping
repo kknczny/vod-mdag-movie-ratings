@@ -66,8 +66,8 @@ class AddRatingsFromPage():
             movie = ia.get_movie(movie_id)
 
             titles.at[index, 'imdb_title'] = str(imdb_movies[0])
-            # titles.at[index, 'names_match'] = (titles['title']==titles['imdb_title']).astype(int) ##add also comparison for year once obtained for vod movies
-            
+            titles.at[index, 'names_match'] = str(titles.at[index, 'title']==titles.at[index, 'imdb_title'])    ##add also comparison for year once obtained for vod movies
+
             titles.at[index, 'imdb_id'] = movie_id
             
             titles.at[index, 'year'] = str(movie['year'])
@@ -94,8 +94,6 @@ class AddRatingsFromPage():
         self.scrap_page()
         self.get_ratings()
         
-
-
 
 if __name__ == "__main__":
     vod_mdag = AddRatingsFromPage(test_subset=3)
