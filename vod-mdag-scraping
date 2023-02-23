@@ -3,7 +3,7 @@ from urllib.request import urlopen
 import ssl
 import time
 import sys
-# import asyncio
+import asyncio
 import pandas as pd
 from imdb import Cinemagoer
 
@@ -48,47 +48,61 @@ class AddRatingsFromPage():
     
         return titles
     
+    @staticmethod
+    async def get_details(titles, index, ia, imdb_movies, stdout_counter):
+
+        sys.stdout.write(f"Progress: Downloading rating for item no {stdout_counter} out of {len(titles)}.\r")
+
+        movie_id = str(imdb_movies[0].movieID)
+
+        movie = await ia.get_movie(movie_id)
+
+        titles.at[index, 'imdb_title'] = str(imdb_movies[0])
+        titles.at[index, 'names_match'] = str(titles.at[index, 'title']==titles.at[index, 'imdb_title'])    ##add also comparison for year once obtained for vod movies
+
+        titles.at[index, 'imdb_id'] = movie_id
+        
+        titles.at[index, 'year'] = str(movie['year'])
+        # titles['countries']
+
+        titles.at[index, 'rating'] = movie['rating']
+        titles.at[index, 'votes'] = str(movie['votes'])
+
+        sys.stdout.flush()
+
+        return titles
+
+
     def get_ratings(self):
         
         titles = self.titles
         stdout_counter = 1
-        ia = Cinemagoer()
-
+    
         print("Starting obtaining ratings")
         start = time.time()
+        ia = Cinemagoer()
+        list_of_tasks = []
 
         for index, title in titles['title'].items():
-            
-            sys.stdout.write(f"Progress: Downloading rating for item no {stdout_counter} out of {len(titles)}.\r")
-
+           
             imdb_movies = ia.search_movie(title.strip())
-            movie_id = str(imdb_movies[0].movieID)
-            movie = ia.get_movie(movie_id)
 
-            titles.at[index, 'imdb_title'] = str(imdb_movies[0])
-            titles.at[index, 'names_match'] = str(titles.at[index, 'title']==titles.at[index, 'imdb_title'])    ##add also comparison for year once obtained for vod movies
+            list_of_tasks.append(self.get_details(titles, index, ia, imdb_movies, stdout_counter))
 
-            titles.at[index, 'imdb_id'] = movie_id
-            
-            titles.at[index, 'year'] = str(movie['year'])
-            # titles['countries']
-
-            titles.at[index, 'rating'] = movie['rating']
-            titles.at[index, 'votes'] = str(movie['votes'])
-
-            sys.stdout.flush()
             stdout_counter += 1
         
+        asyncio.gather(*list_of_tasks)
+
         end = time.time()
 
         print(f"Obtaining ratings finished. It took: {end-start} seconds.")
         
-        titles.index += 1
-        titles.sort_values('rating', ascending=False)
-        
+        # titles.index += 1
+        # titles.sort_values('rating', ascending=False)
+        print(*list_of_tasks)
         print(titles)
 
-        titles.to_csv("Ratings.csv")
+        # titles.to_csv("Ratings.csv")
     
     def get_ratings_from_url(self):
         self.scrap_page()
