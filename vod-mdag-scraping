@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 from urllib.request import urlopen
 import ssl
 import time
+import sys
 # from rotten_tomatoes_client.client import RottenTomatoesClient
 import pandas as pd
 from imdb import Cinemagoer
@@ -59,7 +60,12 @@ class AddRatingsFromPage():
 
         ia = Cinemagoer()
 
+        stdout_counter = 1
+
         for title in titles['title']:
+            
+            sys.stdout.write(f"Progress: Downloading rating for item no {stdout_counter} out of {len(titles)}.\r")
+
             imdb_movies = ia.search_movie(title.strip())
             movie_id = str(imdb_movies[0].movieID)
             movie = ia.get_movie(movie_id)
@@ -74,6 +80,9 @@ class AddRatingsFromPage():
 
             titles['rating'] = movie['rating']
             titles['votes'] = movie['votes']
+
+            sys.stdout.flush()
+            stdout_counter += 1
         
         end = time.time()
 
