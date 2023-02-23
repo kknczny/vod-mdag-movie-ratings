@@ -22,7 +22,6 @@ class AddRatingsFromPage():
 
     def scrap_page(self):
         titles = pd.DataFrame()
-
         context = ssl.SSLContext(ssl.PROTOCOL_TLS)
 
         with urlopen(self.url, context=context) as response:
@@ -45,7 +44,6 @@ class AddRatingsFromPage():
         else:
             print("No titles found on page")
 
-    
         return titles
     
     def get_ratings(self):
@@ -59,32 +57,38 @@ class AddRatingsFromPage():
 
         for index, title in titles['title'].items():
             
-            sys.stdout.write(f"Progress: Downloading rating for item no {stdout_counter} out of {len(titles)}.\r")
+            sys.stdout.write(f"Progress: downloading rating for item #{stdout_counter} out of {len(titles)}.\r")
 
             imdb_movies = ia.search_movie(title.strip())
             movie_id = str(imdb_movies[0].movieID)
             movie = ia.get_movie(movie_id)
 
-            titles.at[index, 'imdb_title'] = str(imdb_movies[0])
-            titles.at[index, 'names_match'] = str(titles.at[index, 'title']==titles.at[index, 'imdb_title'])    ##add also comparison for year once obtained for vod movies
-
-            titles.at[index, 'imdb_id'] = movie_id
+            details_list = {
+                'imdb_title' : 'str(imdb_movies[0])',
+                'year' : 'str(movie[\'year\'])',        ##add also comparison for year once obtained for vod movies
+                'rating' : 'movie[\'rating\']',
+                'votes' : 'str(movie[\'votes\'])',
+                'countries' : '\', \'.join(movie[\'countries\'])',
+                'imdb_id': 'movie_id'
+                }
             
-            titles.at[index, 'year'] = str(movie['year'])
-            # titles['countries']
-
-            titles.at[index, 'rating'] = movie['rating']
-            titles.at[index, 'votes'] = str(movie['votes'])
+            for column, func in details_list.items():
+                try:
+                    titles.at[index, column] = eval(func)
+                except KeyError:
+                    titles.at[index, column] = None
+                    continue
 
             sys.stdout.flush()
             stdout_counter += 1
         
         end = time.time()
+        minutes, seconds = divmod(end-start, 60)
+        print(f"Obtaining ratings finished. It took: {minutes} minutes and {seconds} seconds.")
 
-        print(f"Obtaining ratings finished. It took: {end-start} seconds.")
-        
+        # titles['names_match']: str(titles.at[index, 'title']==titles.at[index, 'imdb_title'])
         titles.index += 1
-        titles.sort_values('rating', ascending=False)
+        titles.sort_values('rating', ascending=False, inplace=True)
         
         print(titles)
 
@@ -96,5 +100,6 @@ class AddRatingsFromPage():
         
 
 if __name__ == "__main__":
+    pd.options.display.max_rows = 200
     vod_mdag = AddRatingsFromPage(test_subset=None)
     vod_mdag.get_ratings_from_url()
