@@ -1,28 +1,85 @@
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
 import ssl
+import time
+# from rotten_tomatoes_client.client import RottenTomatoesClient
+import pandas as pd
+from imdb import Cinemagoer
+
+pd.options.mode.chained_assignment = None       #  Suppres Pandas SettingWithCopyWaring
 
 def scrap_page(
-    url = "https://vod.mdag.pl/pl/filmy",
-    context = ssl.SSLContext()
+    url: str = "https://vod.mdag.pl/pl/filmy",
+    context: ssl.SSLContext = ssl.SSLContext(ssl.PROTOCOL_TLS),
+    test_subset: int = None
 ):
+    titles = pd.DataFrame()
 
     with urlopen(url, context=context) as response:
         soup = BeautifulSoup(response, "html.parser")
-        titles = {}
-        titles_eng = [value.string for value in soup.find_all("div", "moviebox-desc")]
+    
+    titles['title'] = [value.string for value in soup.find_all("div", "moviebox-desc")]
+    titles['title_pl'] = [value.string for value in soup.find_all("div", "moviebox-title")]
+    
+    ##add also a step to go into movie subpage based on link and get additional information such as year
+    
+    titles = titles.head(test_subset)
 
-        for key in soup.find_all("div", "moviebox-title"):
-            for value in titles_eng:
-                titles[key.string] = value
-                titles_eng.remove(value)
-                break
+    if len(titles) == 1:
+        print(f"Found on page: {len(titles)} title")
+    elif len(titles) > 1:
+        print(f"Found on page: {len(titles)} titles")
+    else:
+        print("No titles found on page")
+
     return titles
 
-titles = scrap_page()
+# sample_title = list(titles.values())[0]
 
-# print(list(titles.values())[0])
+# print(f"sample title from website: {sample_title}")
 
-# result = RottenTomatoesClient.search(term="Indiana Jones", limit=5)
+def get_ratings(
+    titles: pd.DataFrame
+):
+    print("Starting obtaining ratings")
+    start = time.time()
+    titles = titles.head(1) ##to delete - limit input dataset for testing
 
-# print(result)
+    ia = Cinemagoer()
+
+    for title in titles['title']:
+        imdb_movies = ia.search_movie(title.strip())
+        movie_id = str(imdb_movies[0].movieID)
+        movie = ia.get_movie(movie_id)
+
+        titles['imdb_title'] = str(imdb_movies[0])
+        titles['names_match'] = (titles['title']==titles['imdb_title']).astype(int) ##add also comparison for year once obtained for vod movies
+        
+        titles['imdb_id'] = movie_id
+        
+        titles['year'] = movie['year']
+        # titles['countries']
+
+        titles['rating'] = movie['rating']
+        titles['votes'] = movie['votes']
+    
+    end = time.time()
+
+    print(f"Obtaining ratings finished. It took: {end-start} seconds.")
+    print(titles)
+
+    # print(imdb_movies.keys())
+    # movie = ia.get_movie('9634036')
+
+
+if __name__ == "__main__":
+    movies = scrap_page()
+    # get_ratings(movies)
+
+    # ia = Cinemagoer()
+    # matches = ia.search_movie('Aalto')
+    # print(matches[0])
+
+    # print(matches[0].movieID)
+    # movie = ia.get_movie('9634036')
+    # print(movie.keys())
